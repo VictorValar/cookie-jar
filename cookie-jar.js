@@ -1,7 +1,7 @@
 let finalSource;
-let referrer = document.referrer;
-let domaint = window.location.hostname;
-let EXPIRATE_DATE_COOKIE = 5184000;
+const referrer = document.referrer;
+const domain = window.location.hostname;
+const EXPIRATE_DATE_COOKIE = 5184000;
 
 function getQueryParam(name) {
     let results = new RegExp("[\\?&]" + name + "=([^&#]*)").exec(
@@ -25,6 +25,8 @@ function readCookie(name) {
     return null;
 }
 
+/**Sets a cookie with the given name, value and expiration time in seconds. The cookie is set with the path '/' and the current domain. The expiration time is converted to milliseconds before it is set.
+ */
 function setCookie(cookieName, cookieValue, expirationTime) {
     expirationTime = expirationTime * 1000;
     let date = new Date();
@@ -39,47 +41,54 @@ function setCookie(cookieName, cookieValue, expirationTime) {
         "; expires=" +
         date +
         "; path=/; domain=" +
-        domaint;
+        domain;
 }
 
-
+/**
+ * This function is used to clear the cookie by the name passed as the argument.
+ * If the cookie value is more than 1000 characters, it is truncated to the first
+ * and last parameters separated by '| User path too long to be recorded |' and set
+ * with a default expiry time of 5184000 seconds (60 days).
+ * @param {string} cookieName - The name of the cookie to be cleared
+ */
 function clearCookie(cookieName) {
+    const cookieValue = readCookie(cookieName);
 
-    var cookieValue = readCookie(cookieName);
+    if (!cookieValue) return;
 
-    if (cookieValue) {
-
-        if (cookieValue.length > 1000) {
-
-            var paramList = cookieValue.split("|")
-            var firstParam = paramList[0]
-            var lastParam = paramList[paramList.length - 1]
-            var smallCookie = firstParam + " | User path too long to be recorded | " + lastParam
-            setCookie(cookieName, smallCookie, 5184000)
-        };
-    };
-
+    if (cookieValue.length > 1000) {
+        const [firstParam, ...rest] = cookieValue.split("|");
+        const lastParam = rest.pop();
+        const smallCookie = `${firstParam} | User path too long to be recorded | ${lastParam}`;
+        setCookie(cookieName, smallCookie, 5184000);
+    }
 }
 
+// Reads cookies
 let lastSourceCookie = readCookie("lastSourceAttribution");
 let firstSourceCookie = readCookie("firstSourceAttribution");
 let multiSourceCookie = readCookie("multiSourceAttribution");
 let lastDirectCookie = readCookie("lastDirectSource");
+
+// Get Query Parameters
 let utm_source = getQueryParam("utm_source");
 let utm_medium = getQueryParam("utm_medium");
 let utm_campaign = getQueryParam("utm_campaign");
 let utm_term = getQueryParam("utm_term");
 let utm_content = getQueryParam("utm_content");
 let gclid = getQueryParam("gclid");
-let fbclid = getQueryParam("fbclid");
+let fbc = getQueryParam("fbc");
 
-
-if (!utm_medium) {
-    utm_medium = "";
-}
-if (!utm_source) {
-    utm_source = "";
-}
+// Get Query Parameters
+const queryParams = {
+    utm_source: getQueryParam("utm_source") || "",
+    utm_medium: getQueryParam("utm_medium") || "",
+    utm_campaign: getQueryParam("utm_campaign") || "",
+    utm_term: getQueryParam("utm_term") || "",
+    utm_content: getQueryParam("utm_content"),
+    gclid: getQueryParam("gclid") || "",
+    fbc: getQueryParam("fbc") || "",
+};
 
 function getEmailSource(utm_medium, utm_source) {
     if (utm_medium.includes("mail") || utm_source.includes("mail")) {
@@ -115,17 +124,17 @@ function getReferrerSource(referrer) {
     return source;
 }
 
-function getPaidSource(utm_medium, utm_source, gclid, fbclid) {
+function getPaidSource(utm_medium, utm_source, gclid, fbc) {
     let source;
     if (utm_medium === "display") {
         return "Google Display";
     }
     if (gclid !== null) {
-        setCookie("gclidStored", gclid, 5184000);
+        setCookie("gclid", gclid, 5184000);
         return "Google Paid Search";
     }
-    if (fbclid !== null) {
-        setCookie("fbclidStored", fbclid, 5184000);
+    if (fbc !== null) {
+        setCookie("fbcStored", fbc, 5184000);
         return "Facebook Paid Social";
     }
     if (
@@ -159,7 +168,7 @@ function getPaidSource(utm_medium, utm_source, gclid, fbclid) {
     }
 }
 
-let paidSource = getPaidSource(utm_medium, utm_source, gclid, fbclid);
+let paidSource = getPaidSource(utm_medium, utm_source, gclid, fbc);
 let referrerSource = getReferrerSource(referrer);
 let emailSource = getEmailSource(utm_medium, utm_source);
 
@@ -230,7 +239,7 @@ if (utm_medium !== null && utm_medium !== "") {
     setCookie("utmMedium", utm_medium, 5184000);
 }
 
-// #### clearCoo ####
+// #### Clear Cookies ####
 clearCookie("lastSourceAttribution");
 clearCookie("firstSourceAttribution");
 clearCookie("multiSourceAttribution");
@@ -239,11 +248,26 @@ clearCookie("utmMedium");
 clearCookie("utmCampaign");
 clearCookie("utmTerm");
 clearCookie("utmContent");
-clearCookie("gclidStored");
+clearCookie("gclid");
 clearCookie("_fbc");
 
-// #### Setfields ####
+// #### Set variables ####
 client_user_agent = window.navigator.userAgent
+    // user_ip = getUserIP();
+
+// function getUserIP() {
+//     // Use the fetch API to call the ipify API
+//     fetch("https://api.ipify.org?format=json")
+//         .then(response => response.json()) // Parse the response as JSON
+//         .then(data => {
+//             // Extract the user's IP from the response
+//             const userIP = data.ip;
+//         })
+//         .catch(error => console.log(Error: $ { error }));
+// }
+
+
+
 
 window.onload = function() {
     ga("require", "getClientId");
@@ -251,59 +275,28 @@ window.onload = function() {
     try {
         document.getElementById("analyticsClientId").value = formClientID;
     } catch {
-        console.log('  - Missing form field: analyticsClientId');
+        console.log('Cookie Jar: Missing form field: analyticsClientId');
     };
     try {
         document.getElementById("client_user_agent").value = client_user_agent;
     } catch {
-        console.log('  - Missing form field: client_user_agent');
+        console.log('Cookie Jar: Missing form field: client_user_agent');
     };
 
 };
 
-function getError(name) {
-    if (name == 'fbclid') {
-        astr = '_fbc'
-    }
-    if (name == 'gclid') {
-        astr = 'gclidStored'
-    }
-    if (name == '_fbp') {
-        astr = '_fbp'
-    }
-    if (name == 'utm_content') {
-        astr = 'utmContent'
-    }
-    if (name == 'utm_term') {
-        astr = 'utmTerm'
-    }
-    if (name == 'utm_campaign') {
-        astr = 'utmCampaign'
-    }
-    if (name == 'utm_source') {
-        astr = 'utmSource'
-    }
-    if (name == 'utm_medium') {
-        astr = 'utmMedium'
-    }
-    if (name == 'lastSourceAttribution') {
-        astr = 'lastSourceAttribution'
-    }
-    if (name == 'firstSourceAttribution') {
-        astr = 'firstSourceAttribution'
-    }
-    if (name == 'multiSourceAttribution') {
-        astr = 'multiSourceAttribution'
-    }
+// Set the cookies as values on the form fields
+function set_cookie_fields(name) {
     try {
         document.getElementById(name).value = readCookie(astr);
     } catch {
-        console.log('  - Missing form field:' + name);
+        console.log('Cookie Jar: Missing form field:' + name);
     }
 }
 
-function setFields() {
-    fetch('https://api.ipify.org/?format=json', { method: 'GET', mode: 'cors' })
+/**Set the cookies as values on the form fields*/
+function setOnFields() {
+    fetch('https://ipinfo.io/json', { method: 'GET', mode: 'cors' })
         .then((response) => response.json())
         .then((data) => {
             client_ip_address = data.ip;
@@ -313,22 +306,26 @@ function setFields() {
                 document.getElementById("client_ip_address").value = String(client_ip_address);
 
             } catch {
-                console.log('  - Missing form field: client_ip_address');
+                console.log('Cookie Jar: Missing form field: client_ip_address');
 
             };
         })
+    try {
+        document.getElementById("lastSourceAttribution").value = readCookie("lastSourceAttribution");
+        document.getElementById("firstSourceAttribution").value = readCookie("firstSourceAttribution");
+        document.getElementById("multiSourceAttribution").value = readCookie("multiSourceAttribution");
+        document.getElementById("gclid").value = readCookie("gclid");
+        document.getElementById("_fbc").value = readCookie("_fbc");
+        document.getElementById("_fbp").value = readCookie("_fbp");
+        document.getElementById("utm_content").value = readCookie("utm_content");
+        document.getElementById("utm_term").value = readCookie("utm_term");
+        document.getElementById("utm_campaign").value = readCookie("utm_campaign");
+        document.getElementById("utm_source").value = readCookie("utm_source");
+        document.getElementById("utm_medium").value = readCookie("utm_medium");
 
-    getError('lastSourceAttribution');
-    getError('firstSourceAttribution');
-    getError('multiSourceAttribution');
-    getError('client_ip_address');
-    getError('gclid');
-    getError('fbclid');
-    getError('_fbp');
-    getError('utm_content');
-    getError('utm_term');
-    getError('utm_campaign');
-    getError('utm_source');
-    getError('utm_medium');
+    } catch (error) {
+        console.log(`Cookie Jar - Missing form fields: ${error.message}`);
+    }
 }
-setTimeout(() => { setFields(); }, 2000);
+
+setTimeout(() => { setOnFields(); }, 2000);
