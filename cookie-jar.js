@@ -45,6 +45,23 @@ function setCookie(cookieName, cookieValue, expirationTime) {
 }
 
 /**
+ * This function is used to get the cookie value by the name passed as the argument.
+ * Userful for debugging
+ * @param {string} cname The name of the cookie to be retrieved
+ * @returns {string} The value of the cookie
+ */
+function getCookie(cname) {
+    var name = cname + "=";
+    var ca = document.cookie.split(';');
+    for (var i = 0; i < ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') c = c.substring(1);
+        if (c.indexOf(name) == 0) return c.substring(name.length, c.length);
+    }
+    return "";
+}
+
+/**
  * This function is used to clear the cookie by the name passed as the argument.
  * If the cookie value is more than 1000 characters, it is truncated to the first
  * and last parameters separated by '| User path too long to be recorded |' and set
