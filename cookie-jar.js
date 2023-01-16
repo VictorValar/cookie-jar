@@ -3,6 +3,7 @@ const referrer = document.referrer;
 const domain = window.location.hostname;
 const EXPIRATE_DATE_COOKIE = 5184000;
 
+/** Get the source from the query parameters */
 function getQueryParam(name) {
     let results = new RegExp("[\\?&]" + name + "=([^&#]*)").exec(
         window.location.href
@@ -14,6 +15,7 @@ function getQueryParam(name) {
     }
 }
 
+/** Reads a cookie by the name passed as the argument.*/
 function readCookie(name) {
     let nameEQ = name + "=";
     let ca = document.cookie.split(";");
@@ -25,7 +27,8 @@ function readCookie(name) {
     return null;
 }
 
-/**Sets a cookie with the given name, value and expiration time in seconds. The cookie is set with the path '/' and the current domain. The expiration time is converted to milliseconds before it is set.
+/**
+ * Sets a cookie with the given name, value and expiration time in seconds. The cookie is set with the path '/' and the  current domain.
  */
 function setCookie(cookieName, cookieValue, expirationTime) {
     expirationTime = expirationTime * 1000;
@@ -311,38 +314,76 @@ function set_cookie_fields(name) {
     }
 }
 
-/**Set the cookies as values on the form fields*/
+/**Set the cookies as values on the form fields
+
+*/
 function setOnFields() {
-    fetch('https://ipinfo.io/json', { method: 'GET', mode: 'cors' })
-        .then((response) => response.json())
-        .then((data) => {
-            client_ip_address = data.ip;
-            console.log("IP: " + client_ip_address);
-            try {
-                // console.log(client_ip_address);
-                document.getElementById("client_ip_address").value = String(client_ip_address);
-
-            } catch {
-                console.log('Cookie Jar: Missing form field: client_ip_address');
-
-            };
-        })
     try {
-        document.getElementById("lastSourceAttribution").value = readCookie("lastSourceAttribution");
-        document.getElementById("firstSourceAttribution").value = readCookie("firstSourceAttribution");
-        document.getElementById("multiSourceAttribution").value = readCookie("multiSourceAttribution");
-        document.getElementById("gclid").value = readCookie("gclid");
-        document.getElementById("_fbc").value = readCookie("_fbc");
-        document.getElementById("_fbp").value = readCookie("_fbp");
-        document.getElementById("utm_content").value = readCookie("utm_content");
-        document.getElementById("utm_term").value = readCookie("utm_term");
-        document.getElementById("utm_campaign").value = readCookie("utm_campaign");
-        document.getElementById("utm_source").value = readCookie("utm_source");
-        document.getElementById("utm_medium").value = readCookie("utm_medium");
+        console.info('Setting on fields');
+        const formFields = {
+            "lastSourceAttribution": "lastSourceAttribution",
+            "firstSourceAttribution": "firstSourceAttribution",
+            "multiSourceAttribution": "multiSourceAttribution",
+            "gclid": "gclid",
+            "_fbc": "_fbc",
+            "_fbp": "_fbp",
+            "utm_content": "utm_content",
+            "utm_term": "utm_term",
+            "utm_campaign": "utm_campaign",
+            "utm_source": "utm_source",
+            "utm_medium": "utm_medium",
+            "client_ip_address": "client_ip_address"
+        };
 
+        const formFieldsStatus = [];
+
+        Object.keys(formFields).forEach(function(key) {
+            const formElement = document.getElementById(key);
+            if (formElement) {
+                formElement.value = readCookie(formFields[key]);
+                formFieldsStatus.push({
+                    [key]: "Found"
+                });
+            } else {
+                console.error(`Cookie Jar: Missing form field: ${key}`);
+                formFieldsStatus.push({
+                    [key]: "Not Found"
+                });
+            }
+        });
+
+        console.table(formFieldsStatus);
+
+        fetch('https://ipinfo.io/json', { method: 'GET', mode: 'cors' })
+            .then((response) => response.json())
+            .then((data) => {
+                const client_ip_address = data.ip;
+                console.log(`IP: ${client_ip_address}`);
+                const formElement = document.getElementById("client_ip_address");
+                if (formElement) {
+                    formElement.value = String(client_ip_address);
+                } else {
+                    console.error('Cookie Jar: Missing form field: client_ip_address');
+                }
+            });
     } catch (error) {
-        console.log(`Cookie Jar - Missing form fields: ${error.message}`);
+        console.error(`${error.name}: ${error.message}`);
+        console.trace(error);
     }
 }
 
-setTimeout(() => { setOnFields(); }, 2000);
+/** Listens to DOM Ready Event and then calls setOnFields() if it is.*/
+function onDOMReady() {
+    try {
+        if (document.readyState === "interactive" || document.readyState === "complete") {
+            setOnFields();
+        } else {
+            document.addEventListener("DOMContentLoaded", setOnFields);
+        }
+    } catch (error) {
+        console.error(`${error.name}: ${error.message}`);
+        console.trace(error);
+    }
+}
+
+// setTimeout(() => { setOnFields(); }, 2000);
