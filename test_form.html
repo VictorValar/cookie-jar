@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Cookie Jar Form</title>
+    <!-- <link rel="stylesheet" type="text/css" href="style.css"> -->
+    <!-- <script src="cookie-jar.js"></script> -->
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 14px;
+        }
+        
+        form {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        input {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 5px;
+            font-size: 14px;
+        }
+        
+        input[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        
+        input[type="submit"]:hover {
+            background-color: #45a049;
+        }
+        
+        .error {
+            color: red;
+        }
+    </style>
+
+</head>
+
+<body>
+    <form>
+        <input type="hidden" id="lastSourceAttribution" name="lastSourceAttribution">
+        <input type="hidden" id="firstSourceAttribution" name="firstSourceAttribution">
+        <input type="hidden" id="multiSourceAttribution" name="multiSourceAttribution">
+        <input type="hidden" id="gclid" name="gclid">
+        <input type="hidden" id="_fbc" name="_fbc">
+        <input type="hidden" id="_fbp" name="_fbp">
+        <input type="hidden" id="_ttp" name="_ttp">
+        <input type="hidden" id="utm_content" name="utm_content">
+        <input type="hidden" id="utm_term" name="utm_term">
+        <input type="hidden" id="utm_campaign" name="utm_campaign">
+        <input type="hidden" id="utm_source" name="utm_source">
+        <input type="hidden" id="utm_medium" name="utm_medium">
+        <input type="hidden" id="client_ip_address" name="client_ip_address">
+        <input type="hidden" id="client_user_agent" name="client_user_agent">
+    </form>
+
+    <!-- Submit the form-->
+    <input type="submit" value="Submit" onclick="submitForm()">
+
+
+</html>
+
+</html>
+
+</html>
