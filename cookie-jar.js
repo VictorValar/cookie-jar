@@ -2,8 +2,12 @@ let finalSource;
 const referrer = document.referrer;
 const domain = window.location.hostname;
 const EXPIRATE_DATE_COOKIE = 5184000;
+const DEBUG_MODE = false;
 
-/** Get the source from the query parameters */
+/** Gets the value of the query parameter passed as the argument.
+ * @param {string} name The name of the query parameter to be retrieved
+ * @returns {string} The value of the query parameter
+ */
 function getQueryParam(name) {
     let results = new RegExp("[\\?&]" + name + "=([^&#]*)").exec(
         window.location.href
@@ -15,7 +19,10 @@ function getQueryParam(name) {
     }
 }
 
-/** Reads a cookie by the name passed as the argument.*/
+/** Reads a cookie by the name passed as the argument.
+ * @param {string} cname The name of the cookie to be retrieved
+ * @returns {string} The value of the cookie
+ */
 function readCookie(name) {
     let nameEQ = name + "=";
     let ca = document.cookie.split(";");
@@ -28,7 +35,12 @@ function readCookie(name) {
 }
 
 /**
- * Sets a cookie with the given name, value and expiration time in seconds. The cookie is set with the path '/' and the  current domain.
+ * Sets a cookie with the given name, value and expiration time in seconds.
+ * The cookie is set with the path '/' and the  current domain.
+ * @param {string} cookieName - The name of the cookie to be set
+ * @param {string} cookieValue - The value of the cookie to be set
+ * @param {number} expirationTime - The expiration time of the cookie in seconds
+ * @returns {string} The value of the cookie
  */
 function setCookie(cookieName, cookieValue, expirationTime) {
     expirationTime = expirationTime * 1000;
@@ -45,30 +57,13 @@ function setCookie(cookieName, cookieValue, expirationTime) {
         date +
         "; path=/; domain=" +
         domain;
+
+    return cookieValue;
 }
 
 /**
- * This function is used to get the cookie value by the name passed as the argument.
- * Userful for debugging
- * @param {string} cname The name of the cookie to be retrieved
- * @returns {string} The value of the cookie
- */
-function getCookie(cname) {
-    var name = cname + "=";
-    var ca = document.cookie.split(';');
-    for (var i = 0; i < ca.length; i++) {
-        var c = ca[i];
-        while (c.charAt(0) == ' ') c = c.substring(1);
-        if (c.indexOf(name) == 0) return c.substring(name.length, c.length);
-    }
-    return "";
-}
-
-/**
- * This function is used to clear the cookie by the name passed as the argument.
- * If the cookie value is more than 1000 characters, it is truncated to the first
- * and last parameters separated by '| User path too long to be recorded |' and set
- * with a default expiry time of 5184000 seconds (60 days).
+ * This function is used to clear cookies that are more than 1000
+ * characters long.
  * @param {string} cookieName - The name of the cookie to be cleared
  */
 function clearCookie(cookieName) {
@@ -80,11 +75,11 @@ function clearCookie(cookieName) {
         const [firstParam, ...rest] = cookieValue.split("|");
         const lastParam = rest.pop();
         const smallCookie = `${firstParam} | User path too long to be recorded | ${lastParam}`;
-        setCookie(cookieName, smallCookie, 5184000);
+        setCookie(cookieName, smallCookie, EXPIRATE_DATE_COOKIE);
     }
 }
 
-// Reads cookies
+// Reads stored source cookies
 let lastSourceCookie = readCookie("lastSourceAttribution");
 let firstSourceCookie = readCookie("firstSourceAttribution");
 let multiSourceCookie = readCookie("multiSourceAttribution");
@@ -98,24 +93,23 @@ let utm_term = getQueryParam("utm_term");
 let utm_content = getQueryParam("utm_content");
 let gclid = getQueryParam("gclid");
 let fbc = getQueryParam("fbc");
+let ttclid = getQueryParam("ttclid");
 
-// Get Query Parameters
-const queryParams = {
-    utm_source: getQueryParam("utm_source") || "",
-    utm_medium: getQueryParam("utm_medium") || "",
-    utm_campaign: getQueryParam("utm_campaign") || "",
-    utm_term: getQueryParam("utm_term") || "",
-    utm_content: getQueryParam("utm_content"),
-    gclid: getQueryParam("gclid") || "",
-    fbc: getQueryParam("fbc") || "",
-};
-
+/** Get Email Source and sets a cookie with the value.
+ * @param {string} utm_medium - Medium from the query parameters
+ * @param {string} utm_source - Source from the query parameters
+ * @returns {string} The value of the source
+ */
 function getEmailSource(utm_medium, utm_source) {
-    if (utm_medium.includes("mail") || utm_source.includes("mail")) {
+    if (utm_medium != null && utm_medium.includes("email") || utm_source != null && utm_source.includes("email")) {
         return "Email Marketing";
     }
 }
 
+/** Get Referral Source and sets a cookie with the value.
+ * @param {string} referrer - The referrer of the page
+ * @returns {string} The value of the source
+ */
 function getReferrerSource(referrer) {
     let source;
 
@@ -139,30 +133,38 @@ function getReferrerSource(referrer) {
         } else {
             source = "Referral";
         }
-        setCookie("referrerSource", referrer, 5184000);
+        setCookie("referrerSource", referrer, EXPIRATE_DATE_COOKIE);
     }
     return source;
 }
 
-function getPaidSource(utm_medium, utm_source, gclid, fbc) {
+/** Get Paid Source and sets a cookie with the value.
+ * @param {string} utm_medium - Medium from the query parameters
+ * @param {string} utm_source - Source from the query parameters
+ * @param {string} gclid - Google Ads Click ID
+ * @param {string} fbc - Facebook Click ID
+ * @param {string} ttclid - TikTok Click ID
+ * @returns {string} The value of the source
+ */
+function getPaidSource(utm_medium, utm_source, gclid, fbc, ttclid) { // todo: add TikTok
     let source;
-    if (utm_medium === "display") {
+    if (["display", "gdn"].includes(utm_medium)) {
         return "Google Display";
     }
     if (gclid !== null) {
-        setCookie("gclid", gclid, 5184000);
+        setCookie("gclid", gclid, EXPIRATE_DATE_COOKIE);
         return "Google Paid Search";
     }
     if (fbc !== null) {
-        setCookie("fbcStored", fbc, 5184000);
+        setCookie("fbcStored", fbc, EXPIRATE_DATE_COOKIE);
         return "Facebook Paid Social";
     }
     if (
-        utm_medium.includes("ppc") ||
-        utm_medium.includes("ad") ||
-        utm_medium.includes("cpc") ||
-        utm_medium.includes("paid") ||
-        utm_medium.includes("adwords")
+        utm_medium != null && utm_medium.includes("ppc") ||
+        utm_medium != null && utm_medium.includes("ad") ||
+        utm_medium != null && utm_medium.includes("cpc") ||
+        utm_medium != null && utm_medium.includes("paid") ||
+        utm_medium != null && utm_medium.includes("adwords")
     ) {
         switch (utm_source) {
             case "adwords":
@@ -218,161 +220,163 @@ if (
 }
 
 if (finalSource === "Direct") {
-    setCookie("lastDirectSource", "true", 5184000);
+    setCookie("lastDirectSource", "true", EXPIRATE_DATE_COOKIE);
 }
+
+
+
+
+// Check if UTM parameters are present
+const utm_params = ["utm_campaign", "utm_term", "utm_content"]
 
 if (utm_source !== null && utm_source !== "") {
-    setCookie("utmSource", utm_source, 5184000);
-}
-
-if (utm_campaign !== null) {
-    campaign = readCookie("utmCampaign");
-
-    if (campaign) {
-        setCookie("utmCampaign", campaign + " | " + utm_campaign, 5184000);
-    } else {
-        setCookie("utmCampaign", utm_campaign, 5184000);
-    }
-}
-
-if (utm_term !== null) {
-    term = readCookie("utmTerm");
-
-    if (term) {
-        setCookie("utmTerm", term + " | " + utm_term, 5184000);
-    } else {
-        setCookie("utmTerm", utm_term, 5184000);
-    }
-}
-
-if (utm_content !== null) {
-    content = readCookie("utmContent");
-
-    if (content) {
-        setCookie("utmContent", content + " | " + utm_content, 5184000);
-    } else {
-        setCookie("utmContent", utm_content, 5184000);
-    }
+    setCookie("utm_source", utm_source, EXPIRATE_DATE_COOKIE);
 }
 
 if (utm_medium !== null && utm_medium !== "") {
-    setCookie("utmMedium", utm_medium, 5184000);
+    setCookie("utm_medium", utm_medium, EXPIRATE_DATE_COOKIE);
 }
 
-// #### Clear Cookies ####
-clearCookie("lastSourceAttribution");
-clearCookie("firstSourceAttribution");
-clearCookie("multiSourceAttribution");
-clearCookie("utmSource");
-clearCookie("utmMedium");
-clearCookie("utmCampaign");
-clearCookie("utmTerm");
-clearCookie("utmContent");
-clearCookie("gclid");
-clearCookie("_fbc");
+for (i in utm_params) {
+    if (i !== null) {
+        cookie_name = String(utm_params[i]);
+        saved_cookie = readCookie(cookie_name);
 
-// #### Set variables ####
-client_user_agent = window.navigator.userAgent
-    // user_ip = getUserIP();
+        if (saved_cookie) {
+            new_value = saved_cookie + " | " + i;
+            setCookie(cookie_name, new_value, EXPIRATE_DATE_COOKIE);
+        } else {
+            setCookie(cookie_name, utm_campaign, EXPIRATE_DATE_COOKIE);
+        }
 
-// function getUserIP() {
-//     // Use the fetch API to call the ipify API
-//     fetch("https://api.ipify.org?format=json")
-//         .then(response => response.json()) // Parse the response as JSON
-//         .then(data => {
-//             // Extract the user's IP from the response
-//             const userIP = data.ip;
-//         })
-//         .catch(error => console.log(Error: $ { error }));
+    }
+}
+
+// if (utm_campaign !== null) {
+//     campaign = readCookie("utm_campaign");
+
+//     if (campaign) {
+//         setCookie("utm_campaign", campaign + " | " + utm_campaign, EXPIRATE_DATE_COOKIE);
+//     } else {
+//         setCookie("utm_campaign", utm_campaign, EXPIRATE_DATE_COOKIE);
+//     }
+// }
+
+// if (utm_term !== null) {
+//     term = readCookie("utm_term");
+
+//     if (term) {
+//         setCookie("utm_term", term + " | " + utm_term, EXPIRATE_DATE_COOKIE);
+//     } else {
+//         setCookie("utm_term", utm_term, EXPIRATE_DATE_COOKIE);
+//     }
+// }
+
+// if (utm_content !== null) {
+//     content = readCookie("utm_content");
+
+//     if (content) {
+//         setCookie("utm_content", content + " | " + utm_content, EXPIRATE_DATE_COOKIE);
+//     } else {
+//         setCookie("utm_content", utm_content, EXPIRATE_DATE_COOKIE);
+//     }
 // }
 
 
+// Clear cookies
+clearCookie("lastSourceAttribution");
+clearCookie("firstSourceAttribution");
+clearCookie("multiSourceAttribution");
+clearCookie("utm_source");
+clearCookie("utm_medium");
+clearCookie("utm_campaign");
+clearCookie("utm_term");
+clearCookie("utm_content");
+// clearCookie("gclid");
+// clearCookie("_fbc");
+// clearCookie("_fbc");
 
-
-window.onload = function() {
-    ga("require", "getClientId");
-    var formClientID = ga.getAll()[0].get("clientId");
-    try {
-        document.getElementById("analyticsClientId").value = formClientID;
-    } catch {
-        console.log('Cookie Jar: Missing form field: analyticsClientId');
-    };
-    try {
-        document.getElementById("client_user_agent").value = client_user_agent;
-    } catch {
-        console.log('Cookie Jar: Missing form field: client_user_agent');
-    };
-
-};
-
-// Set the cookies as values on the form fields
-function set_cookie_fields(name) {
-    try {
-        document.getElementById(name).value = readCookie(astr);
-    } catch {
-        console.log('Cookie Jar: Missing form field:' + name);
-    }
-}
-
-/**Set the cookies as values on the form fields
-
-*/
+/**Set the cookies and other useful information as values on the form fields. */
 function setOnFields() {
-    try {
-        console.info('Setting on fields');
-        const formFields = {
-            "lastSourceAttribution": "lastSourceAttribution",
-            "firstSourceAttribution": "firstSourceAttribution",
-            "multiSourceAttribution": "multiSourceAttribution",
-            "gclid": "gclid",
-            "_fbc": "_fbc",
-            "_fbp": "_fbp",
-            "utm_content": "utm_content",
-            "utm_term": "utm_term",
-            "utm_campaign": "utm_campaign",
-            "utm_source": "utm_source",
-            "utm_medium": "utm_medium",
-            "client_ip_address": "client_ip_address"
-        };
 
-        const formFieldsStatus = [];
+    if (document.querySelector('form')) {
+        try {
+            console.info('Setting on fields');
+            const formFields = {
+                "lastSourceAttribution": "lastSourceAttribution",
+                "firstSourceAttribution": "firstSourceAttribution",
+                "multiSourceAttribution": "multiSourceAttribution",
+                "gclid": "gclid",
+                "ttclid": "ttclid",
+                "_ttp": "_ttp",
+                "_fbc": "_fbc",
+                "_fbp": "_fbp",
+                "utm_content": "utm_content",
+                "utm_term": "utm_term",
+                "utm_campaign": "utm_campaign",
+                "utm_source": "utm_source",
+                "utm_medium": "utm_medium",
+                "client_ip_address": "client_ip_address",
+                "client_user_agent": "client user agent",
 
-        Object.keys(formFields).forEach(function(key) {
-            const formElement = document.getElementById(key);
-            if (formElement) {
-                formElement.value = readCookie(formFields[key]);
-                formFieldsStatus.push({
-                    [key]: "Found"
+            };
+
+            // Set the client IP address
+            fetch('https://ipinfo.io/json', { method: 'GET', mode: 'cors' })
+                .then((response) => response.json())
+                .then((data) => {
+                    const client_ip_address = data.ip;
+                    setCookie("client_ip_address", client_ip_address, EXPIRATE_DATE_COOKIE);
+                    // console.log(`IP: ${client_ip_address}`);
+                    const formElement = document.getElementById("client_ip_address");
+                    if (formElement) {
+                        formElement.value = String(client_ip_address);
+
+                    } else {
+                        console.error('Cookie Jar - Missing form field: client_ip_address');
+                    }
                 });
-            } else {
-                console.error(`Cookie Jar: Missing form field: ${key}`);
-                formFieldsStatus.push({
-                    [key]: "Not Found"
-                });
-            }
-        });
 
-        console.table(formFieldsStatus);
+            // Set the client user agent as a cookie
+            const client_user_agent = navigator.userAgent;
+            setCookie("client_user_agent", client_user_agent, EXPIRATE_DATE_COOKIE);
 
-        fetch('https://ipinfo.io/json', { method: 'GET', mode: 'cors' })
-            .then((response) => response.json())
-            .then((data) => {
-                const client_ip_address = data.ip;
-                console.log(`IP: ${client_ip_address}`);
-                const formElement = document.getElementById("client_ip_address");
+            const formFieldsStatus = [];
+
+            // Set the cookies as values on the form fields
+            Object.keys(formFields).forEach(function(key) {
+                const formElement = document.getElementById(key);
                 if (formElement) {
-                    formElement.value = String(client_ip_address);
+                    formElement.value = readCookie(formFields[key]);
+                    formFieldsStatus.push({
+                        Field: key,
+                        Status: "Found",
+                        Value: readCookie(formFields[key]) || "N/A"
+                    });
                 } else {
-                    console.error('Cookie Jar: Missing form field: client_ip_address');
+                    console.error(`Cookie Jar - Missing form field: ${key}`);
+                    formFieldsStatus.push({
+                        Field: key,
+                        Status: "Not Found",
+                        Value: readCookie(formFields[key]) || "-"
+                    });
                 }
             });
-    } catch (error) {
-        console.error(`${error.name}: ${error.message}`);
-        console.trace(error);
+
+            console.table(formFieldsStatus);
+
+        } catch (error) {
+            console.error(`${error.name}: ${error.message}`);
+            console.trace(error);
+        }
+    } else {
+        console.error('Cookie Jar - No form found');
+
     }
 }
 
-/** Listens to DOM Ready Event and then calls setOnFields() if it is.*/
+
+/** Listens to DOM Ready Event and then calls setOnFields() if it is ready.*/
 function onDOMReady() {
     try {
         if (document.readyState === "interactive" || document.readyState === "complete") {
@@ -386,4 +390,4 @@ function onDOMReady() {
     }
 }
 
-// setTimeout(() => { setOnFields(); }, 2000);
+onDOMReady();
