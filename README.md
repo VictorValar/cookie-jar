@@ -2,13 +2,9 @@
 
 ## Introduction
 
-The "Cookie Jar" JavaScript code is a collection of functions for handling cookies and query parameters on the client side. It provides an easy and efficient way to set, read, and clear cookies, as well as retrieve query parameter values from the URL.
+"Cookie Jar" is a collection of functions for handling cookies and query parameters on the client side. It provides an easy and efficient way to set, read, and clear cookies, as well as retrieve query parameter values from the URL.
 
-With this code, you can easily personalize user experience, track user behavior, or gather analytics data. It is useful for any website or web application that needs to store data on the client side.
-
-This "Cookie Jar" script also includes a function `setOnFields()` which allows you to set a cookie based on the values of input fields on your HTML page. The function takes in two parameters, the first is an array of the fields' ids and the second is the name of the cookie.
-
-The "Cookie Jar" code is easy to implement and use. All you have to do is include the code in your HTML file, and you can start using the provided functions in your JavaScript code.
+With this code, you can easily personalize user experience, track user behavior, or gather analytics data. It is useful for any website or web application that needs to store data on the client side, the script is easy to implement and use. All you have to do is include the code in your HTML file, and you can start using the provided functions in your JavaScript code.
 
 
 ## Implementation
