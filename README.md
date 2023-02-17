@@ -12,13 +12,6 @@ Cookie Jar is easy to implement and use. All you have to do is import the script
 
 ***
 
-## Implementation
-
-### Pre requirements
-- Facebook Pixel is installed on all pages
-- TikTok Pixel is installed on all pages
-
-
 ### Step 1: Include the "Cookie Jar" JavaScript code in your HTML file
 Include the "Cookie Jar" JavaScript code in the `<head>` or `<body>` section of your HTML file.
 Add this to every page on your site.
